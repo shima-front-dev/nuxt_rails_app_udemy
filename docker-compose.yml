@@ -1,61 +1,57 @@
-#composeファイルのバージョン指定
+# composeファイルのバージョン指定
+# Doc: https://docs.docker.com/compose/compose-file/compose-versioning/
 version: "3.8"
 
 services:
-    #composeファイルではコンテナのことをサービスと呼ぶ
+  # サービス(= コンテナ)
   db:
+    # ベースイメージを定義
     image: postgres:13.1-alpine
-    #環境変数
+    # 環境変数を定義
     environment:
-        #OSのタイムゾーン
+      # OSのタイムゾーン
       TZ: UTC
-      #postgresのタイムゾーン
+      # postgresのタイムゾーン
       PGTZ: UTC
-      #データベースのパスワード
+      # データベースのパスワード
       POSTGRES_PASSWORD: $POSTGRES_PASSWORD
-      #ホスト側のディレクトリをコンテナで使用する
-      # ここでデータベースの値を永続化しています。
-
-     #そもそもローカルマシン（PCを指す）とDockerコンテナは別空間にあります。
-     #ですので、DBコンテナにデータを保存しても、コンテナを削除してしまえば保存したデータは全て消えてしまいます。
-     #そこでデータベースの値やファイルなどのデータを永続化する仕組みがこのvolumes(ボリューム)となります。
-     # volumes: ホストパス（絶対or相対）: コンテナパス（絶対）
+    # ホスト側のディレクトリをコンテナで使用する
+    # volumes: ホストパス(絶対 or 相対):コンテナパス(絶対)
     volumes:
       - "./api/tmp/db:/var/lib/postgresql/data"
 
   api:
-    #ベースとなるdockerfileを指定
+    # ベースイメージとなるDockerfileを指定
     build:
       context: ./api
-      #dockerfileに変数を渡す
+      # Dockerfileに変数を渡す
       args:
         WORKDIR: $WORKDIR
-
     command: /bin/sh -c "rm -f tmp/pids/server.pid && bundle exec rails s -p 3000 -b '0.0.0.0'"
-    
     environment:
       POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+      API_DOMAIN: "localhost:$FRONT_PORT"
     volumes:
       - "./api:/$WORKDIR"
+    # サービスの依存関係を定義(起動の順番)
     depends_on:
       - db
+    # 公開用ポートを指定
+    # 公開したいポート番号:コンテナポート
     ports:
-      #ホストポート : dockerポート
       - "$API_PORT:3000"
-      # - "8000:3000"
-      
-      front:
-      build:
-        context: ./front
-        args:
-          WORKDIR: $WORKDIR
-          # CONTAINER_PORT: $CONTAINER_PORT
-          command: yarn run dev
-          volumes:
-            - "./front:/$WORKDIR"
-      ports:
-      #ホストポート : dockerポート
+
+  front:
+    build:
+      context: ./front
+      args:
+        WORKDIR: $WORKDIR
+        API_URL: "http://localhost:$API_PORT"
+    # コンテナで実行したいコマンド(CMD)
+    command: yarn run dev
+    volumes:
+      - "./front:/$WORKDIR"
+    ports:
       - "$FRONT_PORT:3000"
-      # - "$FRONT_PORT:2000"
     depends_on:
       - api
