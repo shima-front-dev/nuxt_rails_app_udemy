@@ -27,7 +27,7 @@ services:
       # Dockerfileに変数を渡す
       args:
         WORKDIR: $WORKDIR
-    command: /bin/sh -c "rm -f tmp/pids/server.pid && bundle exec rails s -p 3000 -b '0.0.0.0'"
+    command: /bin/sh -c "rm -f tmp/pids/server.pid && bundle exec rails s -p 8080 -b '0.0.0.0'"
     environment:
       POSTGRES_PASSWORD: $POSTGRES_PASSWORD
       API_DOMAIN: "localhost:$FRONT_PORT"
@@ -39,7 +39,7 @@ services:
     # 公開用ポートを指定
     # 公開したいポート番号:コンテナポート
     ports:
-      - "$API_PORT:3000"
+      - "$API_PORT:8080"
 
   front:
     build:
@@ -52,6 +52,6 @@ services:
     volumes:
       - "./front:/$WORKDIR"
     ports:
-      - "$FRONT_PORT:3000"
+      - "$FRONT_PORT:7000"
     depends_on:
       - api
